@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.2.3/milligram.min.css">
+    <title>Tic-Tac-Toe Game</title>
+    <!-- <link rel=stylesheet type="text/css" href="style.css"> -->
+  </head>
+  <body>
+    <div class=page>
+    <h2>Tic Tac Toe Game(on the Blockchain)</h2>
+      <div>Player Account: <span id="account"></span></div>
+      <div>
+          <div>
+            <label for="Row">Row: </label>
+            <input id='row' type='text' name='Row'>
+          </div>
+          <div>
+            <label for="column">Column: </label>
+            <input id='column' type='text' name='Column'>
+          </div>
+          <button id="move">Make Move</button>
+          <button id="getPlayers">Get Players</button>
+      </div>
+      <div style="width: 300px;">
+        <div data-row="0" class="row" style="height: 100px; background: #F1F1F1;">
+          <div id="b00" data-col="0" class="block column column-33" style="border-right: 2px solid #aaa"></div>
+          <div id="b01" data-col="1" class="block column column-33" style="border-right: 2px solid #aaa"></div>
+          <div id="b02" data-col="2" class="block column column-33"></div>
+        </div>
+        <div data-row="1" class="row" style="border-top: 2px solid #aaa; height: 100px; background: #F1F1F1;">
+          <div id="b10" data-col="0" class="block column column-33" style="border-right: 2px solid #aaa"></div>
+          <div id="b11" data-col="1" class="block column column-33" style="border-right: 2px solid #aaa"></div>
+          <div id="b12" data-col="2" class="block column column-33"></div>
+        </div>
+        <div data-row="2" class="row" style="border-top: 2px solid #aaa; height: 100px; background: #F1F1F1;">
+          <div id="b20" data-col="0" class="block column column-33" style="border-right: 2px solid #aaa"></div>
+          <div id="b21" data-col="1" class="block column column-33" style="border-right: 2px solid #aaa"></div>
+          <div id="b22" data-col="2" class="block column column-33"></div>
+        </div>
+      </div>
+    </div>
+    <h2>Board State</h2>
+      <div id="entries"></div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script type="text/javascript" src="tic_tac_toe.js"></script>
+    <script type="text/javascript">
+      getplayers();
+      updateAccount();
+      updateEntries();
+      move();
+    </script>
+    </div>
+    <pre><code>
+        # @version ^0.2.4
+        board: public(int128[3][3])
+        players: public(HashMap[address,int128])
+        addressOf: public(HashMap[int128,address])
+        winner: public(int128)
+        turn: public(int128)
+        matchended: public(bool)
+
+        event Players:
+            player1: address
+            player2: address
+
+        event gamestats:
+            turn: int128
+            won: int128
+
+        @external
+        def __init__(player1: address, player2: address):
+            self.players[player1]=1
+            self.players[player2]=2
+            self.addressOf[1]=player1
+            self.addressOf[2]=player2
+            self.turn=1
+            self.board = [[0,0,0],[0,0,0],[0,0,0]]
+
+
+        @internal
+        def validMove(row: int128, column: int128, player: address) -> bool:
+            if (self.players[player] > 0 and row <= 2 and column <= 2 and self.board[row][column] == 0 and self.turn == self.players[player]):
+            return True
+            return False
+
+
+        @external
+        def returnplayers():
+            log Players(self.addressOf[1],self.addressOf[2])
+
+
+
+        @internal
+        def hasWon(player: int128) -> bool:
+            if((self.board[0][0] == player and self.board[0][1] == player and self.board[0][2] == player) or (self.board[1][0] == player and self.board[1][1] == player and self.board[1][2] == player) or (self.board[2][0] == player and self.board[2][1] == player and self.board[2][2] == player) or (self.board[0][0] == player and self.board[1][0] == player and self.board[2][0] == player) or (self.board[0][1] == player and self.board[1][1] == player and self.board[2][1] == player) or (self.board[0][2] == player and self.board[1][2] == player and self.board[2][2] == player) or (self.board[0][0] == player and self.board[1][1] == player and self.board[2][2] == player)
+            or (self.board[2][0] == player and self.board[1][1] == player and self.board[0][2] == player)):
+                self.winner=player
+                return True
+            else:
+                return False
+
+        @external
+        def payout():
+            if self.addressOf[self.winner]!=msg.sender:
+                raise "Not the winner"
+            send(msg.sender,self.balance)
+
+        @external
+        def move(row: int128,column: int128):
+            assert not self.matchended
+            if not self.validMove(row,column,msg.sender):
+                raise "Not a valid move"
+            self.board[row][column] = self.players[msg.sender]
+            self.hasWon(self.players[msg.sender])
+            if self.players[msg.sender]==2:
+                self.turn=1
+            else:
+                self.turn=2
+            log gamestats(self.turn, self.winner)
+
+        @external
+        @payable
+        def __default__():
+            pass
+    </code></pre>
+  </body>
+</html>
